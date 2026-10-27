@@ -123,6 +123,9 @@ def verify_archive(data: bytes, expected_sha: str, kind: str) -> None:
                        b"searchMangaParse", b"mangaDetailsParse", b"chapterListParse", b"pageListParse"]
             if any(b"keiyoushi/source/KeiSource" in b for b in classes):
                 raise ValueError("Unsupported extension API 1.6")
+            if any(native in cls for cls in classes for native in
+                   (b"android/graphics/pdf/PdfRenderer", b"android/os/ParcelFileDescriptor")):
+                raise ValueError("Unsupported Android PDF reader")
             if not any(b"eu/kanade/tachiyomi/source/online/HttpSource" in b
                        and all(m in b for m in methods) for b in classes):
                 raise ValueError("Legacy HttpSource methods are missing")

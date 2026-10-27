@@ -1,31 +1,32 @@
-# MangaDash para Tachimanga
+# MangaDash para Tachimanga no iOS
 
-Repositório pessoal gratuito de Gustavo, com uma compilação do MangaDash usando
-a API legada **1.4**. O projeto é baseado no código Apache 2.0 do
-[Keiyoushi](https://github.com/keiyoushi/extensions-source), sem afiliação oficial
+Repositório pessoal gratuito de Gustavo, baseado no código Apache 2.0 do
+[Keiyoushi](https://github.com/keiyoushi/extensions-source). Sem afiliação oficial
 com MangaDash, Tachimanga ou Keiyoushi.
 
-## Correção do erro “Stub!” — versão 1.4.2
+## Correção de capítulos PDF — versão 1.4.3
 
-A publicação inicial usava a extensão 1.6.0, baseada na API nova `KeiSource`.
-O Tachimanga pode chamar métodos da API legada, produzindo o erro “Stub!”.
-Esta compilação utiliza `HttpSource` e implementa os métodos legados de catálogo,
-busca, detalhes, capítulos e páginas. Os arquivos antigos já não estavam
- disponíveis nos downloads do upstream, então a versão legada foi recompilada.
+O erro informado pelo Tachimanga foi `Stub!` na etapa `chapter-details`.
+A versão 1.4.2 já usava a API legada `HttpSource`, mas ainda tentava abrir PDFs
+com `android.graphics.pdf.PdfRenderer`. A versão **1.4.3** substitui esse leitor
+por extração das imagens do PDF em Java, sem Android Graphics, AWT ou ImageIO.
 
-O pacote agora tem assinatura própria deste repositório e mantém o mesmo
-identificador de fonte: `4579000402227688678`.
+Um capítulo real com 19 páginas foi testado sem essas APIs. Uma segunda
+biblioteca conferiu a ordem e os dados de todas as imagens, sem alterações.
+O funcionamento dentro do Tachimanga no iPhone/iPad ainda precisa ser confirmado.
 
-### Se você instalou a versão 1.6.0
+### Atualizar no iPhone
 
-1. Desinstale **apenas a extensão MangaDash** no Tachimanga.
-2. Remova e adicione novamente este repositório, para atualizar também a chave
-   de assinatura. Isso é necessário caso o aplicativo mantenha a chave antiga.
-3. Instale novamente o MangaDash, conferindo a versão **1.4.2**.
-4. Abra a fonte e teste o catálogo, a busca, uma obra e um capítulo.
+1. Na seção **Extensões** do Tachimanga, atualize MangaDash para **1.4.3**.
+2. Confira a versão instalada e reabra o capítulo.
+3. Caso o aplicativo reutilize páginas antigas, atualize a lista de páginas do
+   capítulo ou remova somente o download desse capítulo antes de baixar novamente.
 
-Não é necessário desinstalar o Tachimanga ou apagar sua biblioteca.
-A execução completa no iPhone/iPad ainda precisa ser confirmada pelo usuário.
+A assinatura e o identificador da fonte são os mesmos da versão 1.4.2; uma
+atualização normal não exige remover o repositório nem apagar a biblioteca.
+Se ainda estiver usando o pacote original 1.6.0, desinstale somente a extensão
+MangaDash e adicione este repositório novamente antes de instalar a 1.4.3,
+pois a chave de assinatura original era diferente.
 
 ## Endereço do repositório
 
@@ -33,63 +34,74 @@ A execução completa no iPhone/iPad ainda precisa ser confirmada pelo usuário.
 https://raw.githubusercontent.com/2ksllvwr/-mangadash-tachimanga/main/index.pb
 ```
 
-No Tachimanga, abra **Navegador → Extensões → Repositórios → Adicionar**.
+No Tachimanga, use a seção **Extensões → Repositórios → Adicionar**.
 Os nomes dos menus podem variar conforme a versão e o idioma do aplicativo.
 
-Também é possível instalar manualmente o arquivo
-`jar/tachiyomi-pt.mangadash-v1.4.2.jar`, usando o botão **+** da seção Extensões.
-Os arquivos do pacote ficam hospedados neste próprio repositório, sem depender
-de links antigos de downloads que possam desaparecer.
+Para instalação manual, use o botão **+** da seção Extensões e o arquivo
+[JAR 1.4.3](https://raw.githubusercontent.com/2ksllvwr/-mangadash-tachimanga/main/jar/tachiyomi-pt.mangadash-v1.4.3.jar).
+O iOS utiliza o JAR; o APK também é disponibilizado para outros clientes.
 
-## Gratuidade e disponibilidade
+## Gratuidade e formatos
 
-A extensão não cobra assinatura e não inclui publicidade. Ela consulta a busca
-e a paginação do MangaDash, sem restringir o catálogo a uma lista fixa de obras.
-Nenhum mangá completo é hospedado neste repositório.
+A extensão é gratuita e não inclui publicidade. Consulta a busca e a paginação
+do site, sem limitar o catálogo a uma lista fixa. Nenhum mangá completo fica
+hospedado neste repositório. Capítulos Premium, antecipados, removidos ou sujeitos
+a login continuam com as condições da plataforma. Anúncios e funções pagas do
+próprio Tachimanga são controlados pelo aplicativo.
 
-O acesso acompanha a disponibilidade do site: capítulos Premium, antecipados,
-removidos ou sujeitos a login continuam com as condições da plataforma.
-Anúncios e funções pagas do próprio Tachimanga são controlados pelo aplicativo.
+Capítulos publicados como imagens continuam usando o caminho original. Para PDF,
+o novo leitor extrai JPEGs e converte imagens RGB/cinza simples em PNG. Preserva
+a ordem das páginas seguindo as instruções do documento, inclusive quando as
+páginas compartilham o mesmo conjunto de imagens. Não renderiza documentos
+vetoriais ou páginas com composição de várias imagens; nesses casos apresenta
+um erro específico e orienta abrir o Web View. Mantém até dois capítulos em
+memória, com limite de 96 MiB de imagens em cache. Não garante suporte a todo PDF
+nem acesso integral ao acervo.
 
-Alguns capítulos são PDFs. O leitor original usa `android.graphics.pdf.PdfRenderer`;
-sua execução depende do suporte dessa API no Tachimanga. A correção de
-compatibilidade da API de extensões não substitui o teste desse recurso no iPhone.
-Não há garantia de acesso a 100% do acervo nem de funcionamento de todos os PDFs.
+## Compilação e assinatura
 
-## Como o pacote é produzido
+- Base: `keiyoushi/extensions-source` no commit
+  `d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd`, API legada 1.4.
+- O módulo em `source/mangadash/` contém as alterações publicadas.
+- `tools/prepare_pdfbox.py` verifica os hashes do PDFBox/FontBox 2.0.37 e
+  Commons Logging 1.2, prepara o parser e executa os testes sem Java Desktop.
+- `source/headless-pdfbox/FilterFactory.java` retira a inicialização dos codecs
+  gráficos de desktop. JPEGs são extraídos diretamente, sem esses codecs.
+- O workflow **Compilar MangaDash para iOS** formata, compila, executa
+  `lintRelease` e testa novamente o próprio JAR otimizado sem Android ou Java
+  Desktop. As regras preservam as classes de logging carregadas por nome.
+  Os artefatos de CI ainda não têm a assinatura de publicação.
+- A assinatura final usa a mesma chave pessoal da versão 1.4.2. Somente o
+  certificado público está no repositório.
+- `provenance.json`, `source/build-info.json` e `release.json` registram a
+  origem, a compilação, a identidade da fonte e os hashes dos arquivos assinados.
 
-- Código-fonte fixado em `d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd`.
-- Módulo original: `src/pt/mangadash`, ainda baseado em `HttpSource`/API 1.4.
-- Alteração de compilação: `versionCode = 1` para `versionCode = 2`.
-- O workflow **Compilar MangaDash legado** compila e executa `lintRelease`.
-- A assinatura final é aplicada separadamente com a chave privada do proprietário.
-  Somente o certificado público está incluído aqui; a chave privada não é publicada.
-- O diretório `source/` contém o módulo e os metadados usados na compilação.
-- `provenance.json` registra o commit e a execução de compilação.
-- `release.json` registra a versão, a identidade da fonte e os hashes dos arquivos.
-
-## Verificação automática
-
-O workflow **Verificar MangaDash compatível** confere os arquivos locais e gera
-os índices diariamente. Ele **não instala automaticamente versões novas do
-upstream** e rejeita a API 1.6, evitando reintroduzir a incompatibilidade.
+## Verificação
 
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/sync.py
+python3 tools/prepare_pdfbox.py --output source/mangadash/libs
 ```
 
-Python 3.11 ou superior é suficiente, sem dependências externas. Os testes
-verificam hashes, versões, identidade de 64 bits, certificado, índices e presença
-dos métodos legados no JAR. As verificações locais não simulam o aplicativo iOS.
+Os dois primeiros comandos exigem apenas Python 3.11+. O último também exige
+JDK 11+ e acesso ao Maven Central. Seus testes executam Java com
+`--limit-modules java.base,java.logging,java.xml`, tornando Android, AWT e ImageIO
+indisponíveis. Testam ordem de páginas, recursos compartilhados, JPEG, PNG com
+predictor e rejeição explícita de composição não suportada.
 
-`index.pb` é protobuf comprimido com gzip; seu formato está em `schema/index.proto`.
-Uma leitura independente usando o descritor oficial confirmou equivalência com
-`index.json`. `SHA256SUMS` lista os hashes dos arquivos assinados.
+Os testes do repositório verificam versões, hashes, assinaturas presentes,
+identidade de 64 bits, índices, métodos legados, licenças e ausência do antigo
+leitor Android no JAR. As assinaturas criptográficas são conferidas separadamente
+com `jarsigner` e `apksigner` antes de publicar.
+
+O workflow **Verificar MangaDash compatível** verifica os arquivos e gera índices
+diariamente. Mantém a API 1.4 e não baixa novas versões do upstream automaticamente.
+`index.pb` é protobuf comprimido com gzip, conforme `schema/index.proto`.
 
 ## Licença
 
-Apache 2.0, em `LICENSE`. Os créditos e as alterações estão em `NOTICE`.
+Apache 2.0: veja `LICENSE`, `NOTICE` e `source/mangadash/assets/licenses/`.
 
 Documentação do Tachimanga:
 [extensões](https://tachimanga.app/help/guides/extensions.html) e

@@ -3,20 +3,25 @@
   "sourceCommit": "d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd",
   "sourceModule": "src/pt/mangadash",
   "changes": [
-    "versionCode 1 -> 2",
-    "personal repository signing certificate"
+    "versionCode 1 -> 3; legacy HttpSource API 1.4 retained",
+    "Android PdfRenderer and ParcelFileDescriptor replaced by portable PDF image extraction",
+    "bounded in-memory chapter cache and image-serving interceptor",
+    "PDFBox/FontBox 2.0.37 and Commons Logging 1.2; modified FilterFactory without desktop codecs",
+    "personal signing certificate retained from version 1.4.2"
   ],
-  "workflowRun": "https://github.com/2ksllvwr/-mangadash-tachimanga/actions/runs/40584094683",
+  "workflowRun": "https://github.com/2ksllvwr/-mangadash-tachimanga/actions/runs/40600980905",
   "artifacts": {
     "jar": {
-      "name": "tachiyomi-pt.mangadash-v1.4.2.jar",
-      "sha256": "0ef6ec0a3ec0b74dfb1b3a669a612de95c7480de37755c68df921290094b1ce4"
+      "name": "tachiyomi-pt.mangadash-v1.4.3.jar",
+      "sha256": "908c31fa3996aa655b5c4432ec18af490954b5bdccf706e66aabe55392b7d98c"
     },
     "apk": {
-      "name": "tachiyomi-pt.mangadash-v1.4.2.apk",
-      "sha256": "3b8face3e8c998a3a8578d410fd1cdd392e2d488124b092668439b1e559c133f"
+      "name": "tachiyomi-pt.mangadash-v1.4.3.apk",
+      "sha256": "35f8cc84e11370e9e4cdd69ca06e652ca5ee17b21276b680dc94590fe78da985"
     }
   },
   "signingKey": "aef34eb968d1a5225ca2cf3666f2e74b4c445a8ec6a9978be9d4677bc7a25b59",
-  "upstreamBinary": false
+  "upstreamBinary": false,
+  "overlayRepository": "https://github.com/2ksllvwr/-mangadash-tachimanga",
+  "overlayCommit": "4840ec04d9f9d791f94d8d5d71fba89db74ce011"
 }

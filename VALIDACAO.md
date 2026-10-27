@@ -1,35 +1,55 @@
-# Verificação da correção — 27/10/2026
+# Verificação do leitor PDF — 27/10/2026
 
-## Problema observado
+## Falha observada
 
-O usuário relatou “Stub!” no Tachimanga após instalar MangaDash 1.6.0.
-Essa versão usa a API nova `KeiSource`. A correção recompila o módulo legado
-`HttpSource`/1.4, com a versão pessoal 1.4.2.
+A captura do Tachimanga no iOS informa `Stub!` com `src: chapter-details`.
+A versão 1.4.2 já usava `HttpSource`/API 1.4, mas mantinha o leitor Android
+`PdfRenderer` e `ParcelFileDescriptor`. A versão 1.4.3 substitui esse caminho por
+extração de imagens em Java e cache de capítulos em memória.
 
-## Verificado
+## Testes do novo leitor
 
-- Compilação `assembleRelease` e `lintRelease` passaram no GitHub Actions.
-- Os metadados gerados declaram versão 1.4.2, API 1.4, pacote
-  `eu.kanade.tachiyomi.extension.pt.mangadash` e fonte `4579000402227688678`.
-- O JAR contém os métodos legados de catálogo, busca, detalhes, capítulos e páginas,
-  sem dependência da classe `keiyoushi.source.KeiSource`.
-- As assinaturas finais do JAR e APK foram verificadas com jarsigner e apksigner.
-- O certificado do APK corresponde ao certificado público deste repositório.
-- 13 testes automatizados passaram.
-- Um leitor protobuf independente, usando o descritor oficial, confirmou que
-  `index.pb` corresponde exatamente a `index.json`.
-- A geração dos índices é determinística e não baixa novas versões do upstream.
-- Os hashes dos arquivos assinados estão registrados em `release.json` e `SHA256SUMS`.
-- As verificações anteriores da API pública do site responderam com busca e
-  paginação de 374 obras em 16 páginas; esse total é uma observação daquele momento.
+O código real de extração foi compilado e executado com
+`--limit-modules java.base,java.logging,java.xml`. Os testes confirmam que
+`PdfRenderer`, `BufferedImage` e `ImageIO` não estão disponíveis nesse ambiente.
 
-Compilação:
-https://github.com/2ksllvwr/-mangadash-tachimanga/actions/runs/40584094683
+- Um PDF sintético com recursos compartilhados mantém a ordem das imagens
+  conforme os comandos de cada página, sem duplicar imagens não utilizadas.
+- Os JPEGs extraídos permanecem idênticos aos dados originais.
+- Uma imagem Flate com predictor PNG é convertida em um PNG válido.
+- Uma página com duas imagens produz um erro explícito de composição não
+  suportada, evitando descartar parte do conteúdo.
+- Um capítulo público real do MangaDash, Dandadan 249, com PDF de 27.171.655 bytes,
+  resultou em 19 JPEGs de 1490 × 2100. Uma leitura independente com PyMuPDF
+  confirmou os hashes de todas as 19 imagens e sua ordem no PDF.
+
+Os arquivos do capítulo real são dados temporários de teste e não são
+redistribuídos neste repositório. Os fixtures publicados são imagens sintéticas.
+
+## Verificação de publicação
+
+- `assembleRelease`, `lintRelease` e os testes do JAR otimizado passaram no GitHub Actions.
+- O JAR assinado passou novamente nos testes sem Android/AWT/ImageIO e extraiu
+  as 19 páginas reais com hashes iguais aos da leitura independente.
+- O PNG produzido pelo JAR assinado foi decodificado separadamente: 2 × 3 pixels,
+  todos RGB (255, 0, 0), conforme o fixture.
+- As assinaturas do JAR e APK foram verificadas; o certificado continua igual ao
+  da versão 1.4.2. Os hashes estão em `release.json` e `SHA256SUMS`.
+- Os 15 testes do repositório passaram.
+- O descritor protobuf oficial confirmou equivalência exata entre `index.pb` e
+  `index.json`, incluindo versão 1.4.3 e identidade de fonte de 64 bits.
+- A compilação está em
+  https://github.com/2ksllvwr/-mangadash-tachimanga/actions/runs/40600980905
+- `provenance.json` registra a origem e o commit utilizados.
 
 ## Limites
 
-O Tachimanga não foi executado em um iPhone/iPad nesta sessão. A instalação e o
-funcionamento dentro do aplicativo ainda precisam ser confirmados pelo usuário.
-Os capítulos em PDF continuam dependendo do suporte a `PdfRenderer` no host.
-A correção remove a dependência da API 1.6; não garante suporte a todas as APIs
-Android utilizadas pelo código legado nem a leitura integral do acervo.
+O aplicativo Tachimanga não foi executado em um iPhone/iPad nesta sessão.
+Os testes sem Android verificam a extração, mas não simulam a máquina virtual
+Java, o instalador ou o cache de páginas do Tachimanga. O teste final dentro do
+aplicativo depende do usuário.
+
+O leitor aceita PDFs baseados em uma imagem por página. Formatos vetoriais,
+imagens com composição ou codecs não suportados pedem abertura no Web View.
+As condições de acesso do MangaDash continuam valendo. Não há garantia de
+leitura de todos os PDFs ou de acesso a todo o acervo da plataforma.

@@ -80,6 +80,25 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(build['versionName'], self.release['versionName'])
         self.assertEqual(str(build['versionCode']), self.release['versionCode'])
 
+    def test_pdf_reader_does_not_reference_android_renderer(self):
+        item = self.release['artifacts']['jar']
+        with zipfile.ZipFile(ROOT / 'jar' / item['name']) as archive:
+            classes = b''.join(archive.read(name) for name in archive.namelist()
+                               if name.endswith('.class'))
+        self.assertIn(b'__mangadash_pdf', classes)
+        for unsupported in [b'android/graphics/pdf/PdfRenderer',
+                            b'android/os/ParcelFileDescriptor']:
+            self.assertNotIn(unsupported, classes)
+
+    def test_pdf_dependency_licenses_are_in_release(self):
+        for kind, item in self.release['artifacts'].items():
+            with zipfile.ZipFile(ROOT / kind / item['name']) as archive:
+                for dependency, suffix in [('pdfbox.jar', ''), ('fontbox.jar', ''),
+                                           ('commons-logging.jar', '.txt')]:
+                    for document in ['LICENSE', 'NOTICE']:
+                        self.assertTrue(archive.read(
+                            f'assets/licenses/{dependency}_{document}{suffix}'))
+
     def test_new_api_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             target = Path(temporary)

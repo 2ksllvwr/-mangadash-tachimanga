@@ -7,8 +7,17 @@ License: Apache License, Version 2.0 (see LICENSE).
 
 This personal repository rebuilds the legacy HttpSource/API 1.4 module at
 commit d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd, with versionCode incremented
-from 1 to 2. The final JAR and APK use this personal repository's signing
-certificate, rather than the upstream Keiyoushi signing certificate.
+from 1 to 3. Version 1.4.3 replaces Android PdfRenderer/ParcelFileDescriptor and
+filesystem caching with a portable image-only PDF extractor and a bounded
+in-memory chapter cache. The final JAR and APK use this repository's personal
+signing certificate.
+
+Apache PDFBox and FontBox 2.0.37, Copyright The Apache Software Foundation.
+Apache Commons Logging 1.2, Copyright The Apache Software Foundation.
+Dependency licenses and notices are preserved in source/mangadash/assets/licenses/
+and in the published packages. The PDFBox FilterFactory has been modified to
+avoid initializing AWT/ImageIO-dependent codecs; the modification is provided
+in source/headless-pdfbox/FilterFactory.java. Image extraction code is new.
 
 Repository scripts, tests, configuration, indexes, and workflows are also
 licensed under Apache 2.0. No private signing key is included in this repository.

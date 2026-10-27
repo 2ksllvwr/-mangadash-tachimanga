@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-27",
+  "chapter": "Dandadan 249",
+  "pdfBytes": 27171655,
+  "pdfSha256": "8d1355457d92150f4a7a3a23b08167346bed0604e8bfcc45ba2ca9e361021bb5",
+  "runtimeModules": [
+    "java.base",
+    "java.logging",
+    "java.xml"
+  ],
+  "independentValidator": "PyMuPDF",
+  "images": [
+    {
+      "page": 1,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "f0f3f02d1bbf9bb0185a5724dfd3a8a88e208e0d64dfabd5779a33ac7a51b75e"
+    },
+    {
+      "page": 2,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "5525fd5b3eb9ddc9516f7869c71ac15c8f22854ded43e65cb63fc66cdce4b622"
+    },
+    {
+      "page": 3,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "0d17c6f0d09eb701e6a8af67447996f922edbf9f16b6a2d86364d895c017d518"
+    },
+    {
+      "page": 4,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "10369aa8b81918a37df84713553b8e47e75166de7db44c902d44324d5dd971f5"
+    },
+    {
+      "page": 5,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "93fe133655d79ee4e1e2535420303e48ff3f55d992c14d849cb59e87837a93ff"
+    },
+    {
+      "page": 6,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "3f2e3fb397221c80161a8b048e1c32a5c71ce7114919b01420c251a1a7320c1f"
+    },
+    {
+      "page": 7,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "24630196c4082d3ad0dd344a36a0f9b69e0e6272207633938f845861068361b4"
+    },
+    {
+      "page": 8,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "304c0508f2cfc3863cae5e5a411040547aba9101528b9443438cf7c5956b3811"
+    },
+    {
+      "page": 9,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "83c7535256bd29d8a63d52e1073112b0e68f5f024e7a7f31f59120a2a6b1b9b4"
+    },
+    {
+      "page": 10,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "caf30e538f8a4edf691ee42de562a6910f172355f5635ea2595e8ea1faac46e4"
+    },
+    {
+      "page": 11,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "f1498304a48123d8fb7aae7940726b67fb2b086c8bc31e92785721ce8fd3f490"
+    },
+    {
+      "page": 12,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "f017a7c1449647b17d0a92ebb13e031fd9a8d77f35d1983ef6fefdba9aa0d637"
+    },
+    {
+      "page": 13,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "f04e64e77aa326fc187f8a30b0ac71a36e1f359d6805fe2cd7b8baa20be8af15"
+    },
+    {
+      "page": 14,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "2e88db9eced479f933c61421e7dba366b07076b42654adbdb6ef0700fcb63ca3"
+    },
+    {
+      "page": 15,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "e20f4198a9c307dc9c2c3496e1b02ce1c9d3419137a3af07d78f050d4c04130f"
+    },
+    {
+      "page": 16,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "590274661e81e8219cef16a8dea3c8ac8aa8e842c0777e43bd63abe9d5a10b6c"
+    },
+    {
+      "page": 17,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "07fc6fc092348bcde331f6abaa5aa4f594393fd1d44d49408889fcbb5db8dedd"
+    },
+    {
+      "page": 18,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "b802067aa3cf45ec198963dc88d01d1cf5237d260688b9476ac174c3128da01b"
+    },
+    {
+      "page": 19,
+      "width": 1490,
+      "height": 2100,
+      "sha256": "d6f0a12dbcb7314340cf62642f989c6bcc6189ffc32406d8460d5571e4942a81"
+    }
+  ],
+  "publishedJarSha256": "908c31fa3996aa655b5c4432ec18af490954b5bdccf706e66aabe55392b7d98c",
+  "optimizedJarVerified": true,
+  "flatePngPixelValidation": "2x3 RGB, all pixels (255, 0, 0)"
+}
