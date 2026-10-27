@@ -1,0 +1,26 @@
+{
+  "packageName": "eu.kanade.tachiyomi.extension.pt.mangadash",
+  "name": "MangaDash",
+  "extensionLib": "1.4",
+  "versionName": "1.4.2",
+  "versionCode": "104002",
+  "signingKey": "aef34eb968d1a5225ca2cf3666f2e74b4c445a8ec6a9978be9d4677bc7a25b59",
+  "sources": [
+    {
+      "id": "4579000402227688678",
+      "name": "MangaDash",
+      "language": "pt-BR",
+      "homeUrl": "https://mangadash.net"
+    }
+  ],
+  "artifacts": {
+    "jar": {
+      "name": "tachiyomi-pt.mangadash-v1.4.2.jar",
+      "sha256": "0ef6ec0a3ec0b74dfb1b3a669a612de95c7480de37755c68df921290094b1ce4"
+    },
+    "apk": {
+      "name": "tachiyomi-pt.mangadash-v1.4.2.apk",
+      "sha256": "3b8face3e8c998a3a8578d410fd1cdd392e2d488124b092668439b1e559c133f"
+    }
+  }
+}

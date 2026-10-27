@@ -1,31 +1,22 @@
 #!/usr/bin/env python3
-"""Publish only MangaDash from one immutable, verified Keiyoushi snapshot.
+"""Generate the Tachimanga repository from a locally signed legacy build.
 
-Python 3.11+, standard library only. Binary artifacts remain unmodified.
-The protobuf extension message is preserved byte for byte, including unknown
-fields. See schema/index.proto for the upstream format.
+Python 3.11+, standard library only. No network updates are performed. Only extension API 1.4 is accepted.
+See schema/index.proto for the protobuf format.
 """
 from __future__ import annotations
 
 import argparse
-import copy
 import gzip
 import hashlib
 import io
 import json
 import re
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = "eu.kanade.tachiyomi.extension.pt.mangadash"
-UPSTREAM = "https://raw.githubusercontent.com/keiyoushi/extensions"
-API = "https://api.github.com/repos/keiyoushi/extensions"
-EXPECTED_KEY = "9add655a78e96c4ec7a53ef89dccb557cb5d767489fac5e785d671a5a75d4da2"
 MAX_BYTES = 30 * 1024 * 1024
 
 
@@ -95,36 +86,6 @@ def one(data: bytes, number: int, wire: int = 2) -> bytes | int:
     return matches[0]
 
 
-def release_url(url: str, suffix: str) -> str:
-    parsed = urllib.parse.urlsplit(url)
-    filename = parsed.path.rsplit("/", 1)[-1]
-    path_pattern = (r"/keiyoushi/extensions/releases/download/[0-9a-f]{7,40}/"
-                    r"tachiyomi-pt\.mangadash-v[0-9.]+" + re.escape(suffix))
-    if (parsed.scheme != "https" or parsed.netloc != "github.com"
-            or not re.fullmatch(path_pattern, parsed.path) or parsed.query or parsed.fragment):
-        raise ValueError(f"Unexpected upstream {suffix} URL")
-    return filename
-
-
-def validate_config(config: dict) -> None:
-    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", config["repository"]):
-        raise ValueError("Invalid owner/repository")
-    if not re.fullmatch(r"[A-Za-z0-9_.-]+", config["branch"]):
-        raise ValueError("Use a simple branch name without slashes")
-    if not config["name"] or not config["badgeLabel"]:
-        raise ValueError("Repository name and badge are required")
-
-
-def unpack_index(binary: bytes) -> bytes:
-    if not binary.startswith(b"\x1f\x8b"):
-        return binary
-    with gzip.GzipFile(fileobj=io.BytesIO(binary)) as stream:
-        data = stream.read(MAX_BYTES + 1)
-    if len(data) > MAX_BYTES:
-        raise ValueError("Decompressed index exceeded size limit")
-    return data
-
-
 def pack_index(binary: bytes) -> bytes:
     output = io.BytesIO()
     with gzip.GzipFile(fileobj=output, mode="wb", mtime=0) as stream:
@@ -132,153 +93,108 @@ def pack_index(binary: bytes) -> bytes:
     return output.getvalue()
 
 
-def make_indexes(original: dict, binary: bytes, config: dict) -> tuple[dict, bytes, dict]:
-    validate_config(config)
-    binary = unpack_index(binary)
-    candidates = [e for e in original["extensionList"]["extensions"] if e["packageName"] == PACKAGE]
-    if len(candidates) != 1:
-        raise ValueError("MangaDash is missing or duplicated in upstream JSON")
-    extension = candidates[0]
-    if original["signingKey"] != EXPECTED_KEY or one(binary, 3).decode() != EXPECTED_KEY:
-        raise ValueError("Upstream signing key changed; manual review required")
-    if not extension.get("sources") or any(s["homeUrl"] != "https://mangadash.net" for s in extension["sources"]):
-        raise ValueError("Unexpected MangaDash source URL")
-    for kind in ("jar", "apk"):
-        release_url(extension["resources"][kind + "Url"], "." + kind)
-
-    extension_list = one(binary, 101)
-    matches = [v for n, w, v, _ in fields(extension_list)
-               if n == 1 and w == 2 and one(v, 2).decode() == PACKAGE]
-    if len(matches) != 1:
-        raise ValueError("MangaDash is missing or duplicated in upstream protobuf")
-    selected = matches[0]
-    if one(selected, 6).decode() != extension["versionName"] or one(selected, 5, 0) != int(extension["versionCode"]):
-        raise ValueError("JSON and protobuf versions do not match")
-    resources = one(selected, 3)
-    for number, key in ((1, "apkUrl"), (2, "iconUrl"), (501, "jarUrl")):
-        if one(resources, number).decode() != extension["resources"][key]:
-            raise ValueError("JSON and protobuf resource URLs do not match")
-    proto_sources = [v for n, w, v, _ in fields(selected) if n == 8 and w == 2]
-    expected_sources = [(int(s["id"]), s["language"], s["homeUrl"]) for s in extension["sources"]]
-    actual_sources = [(one(s, 1, 0), one(s, 3).decode(), one(s, 4).decode()) for s in proto_sources]
-    if actual_sources != expected_sources:
-        raise ValueError("JSON and protobuf source IDs do not match")
-
-    website = "https://github.com/" + config["repository"]
-    output = copy.deepcopy(original)
-    output["name"] = config["name"]
-    output["badgeLabel"] = config["badgeLabel"]
-    output["contact"] = {"website": website}
-    output["extensionList"] = {"extensions": [copy.deepcopy(extension)]}
-    output.pop("extensionListUrl", None)
-    # Preserve any unknown top-level fields, and the complete selected extension.
-    preserved = b"".join(raw for n, _, _, raw in fields(binary) if n not in (1, 2, 4, 101, 102))
-    published = (field(1, config["name"]) + field(2, config["badgeLabel"])
-                 + preserved + field(4, field(1, website)) + field(101, field(1, selected)))
-    return output, pack_index(published), extension
+def unpack_index(binary: bytes) -> bytes:
+    with gzip.GzipFile(fileobj=io.BytesIO(binary)) as stream:
+        result = stream.read(MAX_BYTES + 1)
+    if len(result) > MAX_BYTES:
+        raise ValueError("Index is too large")
+    return result
 
 
-def download(url: str) -> bytes:
-    for attempt in range(3):
-        try:
-            request = urllib.request.Request(url, headers={"User-Agent": "MangaDash-Tachimanga-Repository/1.0"})
-            with urllib.request.urlopen(request, timeout=30) as response:
-                data = response.read(MAX_BYTES + 1)
-                if len(data) > MAX_BYTES:
-                    raise ValueError("Upstream response exceeded size limit")
-                return data
-        except (urllib.error.URLError, TimeoutError):
-            if attempt == 2:
-                raise
-            time.sleep(attempt + 1)
-    raise RuntimeError("Download failed")
-
-
-def verify_archive(data: bytes, expected_sha: str, kind: str) -> None:
-    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha):
-        raise ValueError("Missing upstream SHA-256")
-    if hashlib.sha256(data).hexdigest() != expected_sha:
-        raise ValueError(f"{kind}: upstream SHA-256 mismatch")
-    with zipfile.ZipFile(io.BytesIO(data)) as archive:
-        if archive.testzip() is not None or "AndroidManifest.xml" not in archive.namelist():
-            raise ValueError(f"{kind}: corrupt extension archive")
-        if kind == "jar" and not {"META-INF/CERT.RSA", "META-INF/CERT.SF"} <= set(archive.namelist()):
-            raise ValueError("JAR signature files are missing")
+def int_field(number: int, value: int) -> bytes:
+    return varint(number << 3) + varint(value)
 
 
 def json_bytes(value: dict) -> bytes:
     return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
 
 
-def sync(destination: Path = ROOT, cache: Path | None = None) -> bool:
-    config = json.loads((destination / "repository.json").read_text())
-    if cache:
-        commit = json.loads((cache / "upstream-tree.json").read_text())["sha"]
-        raw_json = (cache / "upstream-full-index.json").read_bytes()
-        raw_pb = (cache / "index.pb").read_bytes()
-    else:
-        commit = json.loads(download(API + "/git/ref/heads/repo"))["object"]["sha"]
-        if not re.fullmatch(r"[0-9a-f]{40}", commit):
-            raise ValueError("Invalid upstream commit")
-        raw_json = download(f"{UPSTREAM}/{commit}/index.json")
-        raw_pb = download(f"{UPSTREAM}/{commit}/index.pb")
-    output, binary, extension = make_indexes(json.loads(raw_json), raw_pb, config)
-    index_url = f"https://raw.githubusercontent.com/{config['repository']}/{config['branch']}/index.pb"
-    repo = {"index_v2": index_url, "meta": {"name": config["name"],
-            "website": "https://github.com/" + config["repository"],
-            "signingKeyFingerprint": EXPECTED_KEY}}
-    pending = {"index.json": json_bytes(output), "index.pb": binary, "repo.json": json_bytes(repo)}
-    assets = json.loads((cache / "release-assets.json").read_bytes() if cache
-                        else download(f"{UPSTREAM}/{commit}/release-assets.json"))[PACKAGE]
-    checksums, origins = [], {}
-    for kind in ("jar", "apk"):
-        url = extension["resources"][kind + "Url"]
-        name = release_url(url, "." + kind)
-        info = assets[kind]
-        if info["name"] != name:
-            raise ValueError("Artifact filename and checksum metadata differ")
-        current = destination / kind / name
-        if current.exists() and hashlib.sha256(current.read_bytes()).hexdigest() == info["sha256"]:
-            data = current.read_bytes()
-        else:
-            data = (cache / name).read_bytes() if cache else download(url)
-        verify_archive(data, info["sha256"], kind)
-        path = f"{kind}/{name}"
-        pending[path] = data
-        checksums.append(f"{info['sha256']}  {path}")
-        origins[kind] = {"url": url, "sha256": info["sha256"]}
-    pending["SHA256SUMS"] = ("\n".join(checksums) + "\n").encode()
-    if all((destination / name).exists() and (destination / name).read_bytes() == data
-           for name, data in pending.items()):
-        print("MangaDash já está atualizado; nenhum arquivo alterado.")
-        return False
+def verify_archive(data: bytes, expected_sha: str, kind: str) -> None:
+    if hashlib.sha256(data).hexdigest() != expected_sha:
+        raise ValueError(f"{kind}: SHA-256 mismatch")
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        if archive.testzip() or "AndroidManifest.xml" not in archive.namelist():
+            raise ValueError("Invalid extension archive")
+        if kind == "jar":
+            if not {"META-INF/CERT.RSA", "META-INF/CERT.SF"} <= set(archive.namelist()):
+                raise ValueError("Missing JAR signature")
+            classes = [archive.read(n) for n in archive.namelist() if n.endswith(".class")]
+            methods = [b"popularMangaRequest", b"popularMangaParse", b"searchMangaRequest",
+                       b"searchMangaParse", b"mangaDetailsParse", b"chapterListParse", b"pageListParse"]
+            if any(b"keiyoushi/source/KeiSource" in b for b in classes):
+                raise ValueError("Unsupported extension API 1.6")
+            if not any(b"eu/kanade/tachiyomi/source/online/HttpSource" in b
+                       and all(m in b for m in methods) for b in classes):
+                raise ValueError("Legacy HttpSource methods are missing")
 
-    tag = urllib.parse.urlsplit(extension["resources"]["jarUrl"]).path.split("/")[-2]
-    pending["provenance.json"] = json_bytes({
-        "upstreamRepository": "https://github.com/keiyoushi/extensions",
-        "indexCommit": commit, "indexJsonSha256": hashlib.sha256(raw_json).hexdigest(),
-        "indexProtobufSha256": hashlib.sha256(raw_pb).hexdigest(),
-        "packageName": PACKAGE, "versionName": extension["versionName"],
-        "sourceCode": f"https://github.com/keiyoushi/extensions-source/tree/{tag}/src/pt/mangadash",
-        "artifacts": origins, "binaryModified": False,
-    })
-    # Validate everything before changing any deliverable; all writes are local.
+
+def prepare(root: Path) -> dict[str, bytes]:
+    config = json.loads((root / "repository.json").read_text())
+    release = json.loads((root / "release.json").read_text())
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", config["repository"]):
+        raise ValueError("Invalid repository")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", config["branch"]):
+        raise ValueError("Invalid branch")
+    if config["extensionLib"] != "1.4" or release["extensionLib"] != "1.4":
+        raise ValueError("Only the legacy extension API 1.4 is supported")
+    if release["packageName"] != PACKAGE or release["sources"][0]["id"] != "4579000402227688678":
+        raise ValueError("Source identity changed")
+    if not re.fullmatch(r"1\.4\.[0-9]+", release["versionName"]):
+        raise ValueError("Invalid legacy version")
+    if int(release["versionCode"]) != 104000 + int(release["versionName"].split(".")[-1]):
+        raise ValueError("Version code does not match legacy version")
+    cert = (root / "signing-certificate.der").read_bytes()
+    signer = hashlib.sha256(cert).hexdigest()
+    if signer != release["signingKey"]:
+        raise ValueError("Certificate fingerprint mismatch")
+    base = f"https://raw.githubusercontent.com/{config['repository']}/{config['branch']}/"
+    resources, checksums = {}, []
+    for kind in ("jar", "apk"):
+        item = release["artifacts"][kind]
+        filename = f"tachiyomi-pt.mangadash-v{release['versionName']}.{kind}"
+        if item["name"] != filename:
+            raise ValueError("Artifact filename does not match release")
+        relative = f"{kind}/{filename}"
+        verify_archive((root / relative).read_bytes(), item["sha256"], kind)
+        resources[kind + "Url"] = base + relative
+        checksums.append(f"{item['sha256']}  {relative}")
+    resources["iconUrl"] = base + "icon.png"
+    entry = {key: release[key] for key in ("name", "packageName", "extensionLib", "versionCode", "versionName", "sources")}
+    entry.update(resources=resources, contentWarning="CONTENT_WARNING_MIXED")
+    website = "https://github.com/" + config["repository"]
+    index = {"name": config["name"], "badgeLabel": config["badgeLabel"], "signingKey": signer,
+             "contact": {"website": website}, "extensionList": {"extensions": [entry]}}
+    resource_pb = field(1, resources["apkUrl"]) + field(2, resources["iconUrl"]) + field(501, resources["jarUrl"])
+    extension_pb = (field(1, entry["name"]) + field(2, PACKAGE) + field(3, resource_pb)
+                    + field(4, "1.4") + int_field(5, int(entry["versionCode"]))
+                    + field(6, entry["versionName"]) + int_field(7, 2))
+    for source in entry["sources"]:
+        if source["homeUrl"] != "https://mangadash.net" or source["language"] != "pt-BR":
+            raise ValueError("Unexpected source configuration")
+        source_pb = (int_field(1, int(source["id"])) + field(2, source["name"])
+                     + field(3, source["language"]) + field(4, source["homeUrl"]))
+        extension_pb += field(8, source_pb)
+    index_pb = (field(1, config["name"]) + field(2, config["badgeLabel"]) + field(3, signer)
+                + field(4, field(1, website)) + field(101, field(1, extension_pb)))
+    repo = {"index_v2": base + "index.pb", "meta": {"name": config["name"], "website": website,
+            "signingKeyFingerprint": signer}}
+    return {"index.json": json_bytes(index), "index.pb": pack_index(index_pb),
+            "repo.json": json_bytes(repo), "SHA256SUMS": ("\n".join(checksums) + "\n").encode()}
+
+
+def sync(destination: Path = ROOT) -> bool:
+    pending = prepare(destination)
+    changed = False
     for name, data in pending.items():
         path = destination / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_name(path.name + ".tmp")
-        temporary.write_bytes(data)
-        temporary.replace(path)
-    for kind in ("jar", "apk"):
-        for old in (destination / kind).glob("*.*"):
-            if old.name != origins[kind]["url"].rsplit("/", 1)[1]:
-                old.unlink()
-    print(f"MangaDash {extension['versionName']}: índices e arquivos verificados.")
-    return True
+        if not path.exists() or path.read_bytes() != data:
+            temporary = path.with_name(path.name + ".tmp")
+            temporary.write_bytes(data)
+            temporary.replace(path)
+            changed = True
+    print("Índices da API 1.4 verificados." if not changed else "Índices da API 1.4 atualizados.")
+    return changed
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cache", type=Path, help="Use a previously downloaded snapshot for offline preparation")
-    args = parser.parse_args()
-    sync(cache=args.cache)
+    sync()

@@ -1,20 +1,22 @@
 {
-  "upstreamRepository": "https://github.com/keiyoushi/extensions",
-  "indexCommit": "b694086e6138cde28b5c3e1836d47691926a2007",
-  "indexJsonSha256": "c2b07f216fbec3859139145361d6c4830e75d68e4c214774edd7d2d258278b63",
-  "indexProtobufSha256": "7b1a788f5ed2bd892c6e303e46653442b06c162f2e140896be30ee2cea3a1ce3",
-  "packageName": "eu.kanade.tachiyomi.extension.pt.mangadash",
-  "versionName": "1.6.0",
-  "sourceCode": "https://github.com/keiyoushi/extensions-source/tree/e40e1b7/src/pt/mangadash",
+  "sourceRepository": "https://github.com/keiyoushi/extensions-source",
+  "sourceCommit": "d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd",
+  "sourceModule": "src/pt/mangadash",
+  "changes": [
+    "versionCode 1 -> 2",
+    "personal repository signing certificate"
+  ],
+  "workflowRun": "https://github.com/2ksllvwr/-mangadash-tachimanga/actions/runs/40584094683",
   "artifacts": {
     "jar": {
-      "url": "https://github.com/keiyoushi/extensions/releases/download/e40e1b7/tachiyomi-pt.mangadash-v1.6.0.jar",
-      "sha256": "9ca9c1659ab02c8be1420f5e51710830adf7cf5497eeda7729097b12f08301be"
+      "name": "tachiyomi-pt.mangadash-v1.4.2.jar",
+      "sha256": "0ef6ec0a3ec0b74dfb1b3a669a612de95c7480de37755c68df921290094b1ce4"
     },
     "apk": {
-      "url": "https://github.com/keiyoushi/extensions/releases/download/e40e1b7/tachiyomi-pt.mangadash-v1.6.0.apk",
-      "sha256": "09b26bf497feb0b6bb336ae9276405000a9902f092c304a2067eebe6dfbbfd5c"
+      "name": "tachiyomi-pt.mangadash-v1.4.2.apk",
+      "sha256": "3b8face3e8c998a3a8578d410fd1cdd392e2d488124b092668439b1e559c133f"
     }
   },
-  "binaryModified": false
+  "signingKey": "aef34eb968d1a5225ca2cf3666f2e74b4c445a8ec6a9978be9d4677bc7a25b59",
+  "upstreamBinary": false
 }

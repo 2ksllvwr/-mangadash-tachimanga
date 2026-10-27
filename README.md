@@ -1,88 +1,96 @@
 # MangaDash para Tachimanga
 
-Repositório pessoal gratuito que disponibiliza **somente a extensão MangaDash**
-do projeto [Keiyoushi](https://github.com/keiyoushi/extensions-source).
-O arquivo da extensão permanece original, com a assinatura do desenvolvedor.
-Este projeto não é afiliado ao MangaDash, ao Tachimanga ou ao Keiyoushi.
+Repositório pessoal gratuito de Gustavo, com uma compilação do MangaDash usando
+a API legada **1.4**. O projeto é baseado no código Apache 2.0 do
+[Keiyoushi](https://github.com/keiyoushi/extensions-source), sem afiliação oficial
+com MangaDash, Tachimanga ou Keiyoushi.
 
-## Instalar no iPhone ou iPad
+## Correção do erro “Stub!” — versão 1.4.2
 
-Adicione o endereço do repositório no Tachimanga:
+A publicação inicial usava a extensão 1.6.0, baseada na API nova `KeiSource`.
+O Tachimanga pode chamar métodos da API legada, produzindo o erro “Stub!”.
+Esta compilação utiliza `HttpSource` e implementa os métodos legados de catálogo,
+busca, detalhes, capítulos e páginas. Os arquivos antigos já não estavam
+ disponíveis nos downloads do upstream, então a versão legada foi recompilada.
+
+O pacote agora tem assinatura própria deste repositório e mantém o mesmo
+identificador de fonte: `4579000402227688678`.
+
+### Se você instalou a versão 1.6.0
+
+1. Desinstale **apenas a extensão MangaDash** no Tachimanga.
+2. Remova e adicione novamente este repositório, para atualizar também a chave
+   de assinatura. Isso é necessário caso o aplicativo mantenha a chave antiga.
+3. Instale novamente o MangaDash, conferindo a versão **1.4.2**.
+4. Abra a fonte e teste o catálogo, a busca, uma obra e um capítulo.
+
+Não é necessário desinstalar o Tachimanga ou apagar sua biblioteca.
+A execução completa no iPhone/iPad ainda precisa ser confirmada pelo usuário.
+
+## Endereço do repositório
 
 ```text
 https://raw.githubusercontent.com/2ksllvwr/-mangadash-tachimanga/main/index.pb
 ```
 
-1. Atualize o Tachimanga pela App Store.
-2. Abra **Navegador → Extensões → Repositórios** e adicione o endereço acima.
-   O nome de alguns menus pode variar conforme o idioma e a versão do aplicativo.
-3. Atualize a lista, procure **MangaDash** e instale a extensão.
-4. Abra a fonte **MangaDash (Português do Brasil)**.
+No Tachimanga, abra **Navegador → Extensões → Repositórios → Adicionar**.
+Os nomes dos menus podem variar conforme a versão e o idioma do aplicativo.
 
-Também é possível instalar sem hospedar o repositório: extraia o ZIP no app
-**Arquivos** e, no Tachimanga, abra **Navegador → Extensões → +**, selecionando
-`jar/tachiyomi-pt.mangadash-v1.6.0.jar`. Se a versão mudar, escolha o `.jar`
-mais recente dessa pasta. O `.apk` incluído serve para aplicativos Android.
+Também é possível instalar manualmente o arquivo
+`jar/tachiyomi-pt.mangadash-v1.4.2.jar`, usando o botão **+** da seção Extensões.
+Os arquivos do pacote ficam hospedados neste próprio repositório, sem depender
+de links antigos de downloads que possam desaparecer.
 
-Referência: [documentação de extensões](https://tachimanga.app/help/guides/extensions.html)
-e [formato de repositório](https://tachimanga.app/help/guides/repositories.html).
+## Gratuidade e disponibilidade
 
-## Gratuidade, catálogo e anúncios
+A extensão não cobra assinatura e não inclui publicidade. Ela consulta a busca
+e a paginação do MangaDash, sem restringir o catálogo a uma lista fixa de obras.
+Nenhum mangá completo é hospedado neste repositório.
 
-- O repositório e a extensão não cobram assinatura, não inserem publicidade e
-  não exigem servidor contratado. Os índices e arquivos podem ser hospedados
-  em um repositório público gratuito do GitHub.
-- A extensão consulta a busca e a paginação do site. Não há uma lista fixa de
-  mangás dentro deste repositório, nem cópias dos mangás hospedadas aqui.
-- O acesso segue a disponibilidade do MangaDash. Conteúdo Premium, antecipado,
-  removido ou sujeito a login mantém as condições de acesso da plataforma.
-- A extensão não executa os scripts de publicidade da página no leitor nativo.
-  Anúncios e recursos pagos do próprio Tachimanga são controlados pelo aplicativo.
-- Alguns capítulos são PDFs. A extensão original usa `android.graphics.pdf.PdfRenderer`;
-  sua execução depende de essa API estar implementada na versão do Tachimanga.
-  **O pacote foi conferido, mas a leitura no iPhone/iPad ainda precisa ser testada.**
-  Não há garantia de compatibilidade integral nem de acesso a 100% do acervo.
+O acesso acompanha a disponibilidade do site: capítulos Premium, antecipados,
+removidos ou sujeitos a login continuam com as condições da plataforma.
+Anúncios e funções pagas do próprio Tachimanga são controlados pelo aplicativo.
 
-## Repositório pessoal
+Alguns capítulos são PDFs. O leitor original usa `android.graphics.pdf.PdfRenderer`;
+sua execução depende do suporte dessa API no Tachimanga. A correção de
+compatibilidade da API de extensões não substitui o teste desse recurso no iPhone.
+Não há garantia de acesso a 100% do acervo nem de funcionamento de todos os PDFs.
 
-Este pacote está configurado para o repositório público
-`2ksllvwr/-mangadash-tachimanga`, na branch `main`.
-O nome começa com um hífen; mantenha-o ao copiar o endereço.
-A instalação inicial não depende de executar GitHub Actions.
-Os downloads indicados no índice apontam para as versões originais do Keiyoushi.
+## Como o pacote é produzido
 
-Se usar outro nome de repositório ou outra conta, ajuste `repository.json`,
-execute `python3 scripts/sync.py` e use o endereço retornado em `repo.json`.
+- Código-fonte fixado em `d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd`.
+- Módulo original: `src/pt/mangadash`, ainda baseado em `HttpSource`/API 1.4.
+- Alteração de compilação: `versionCode = 1` para `versionCode = 2`.
+- O workflow **Compilar MangaDash legado** compila e executa `lintRelease`.
+- A assinatura final é aplicada separadamente com a chave privada do proprietário.
+  Somente o certificado público está incluído aqui; a chave privada não é publicada.
+- O diretório `source/` contém o módulo e os metadados usados na compilação.
+- `provenance.json` registra o commit e a execução de compilação.
+- `release.json` registra a versão, a identidade da fonte e os hashes dos arquivos.
 
-## Atualizações e desenvolvimento
+## Verificação automática
 
-O fluxo **Actions → Atualizar MangaDash** consulta o projeto original diariamente
-e também pode ser executado manualmente. Usa apenas Python 3.11 ou superior,
-sem dependências externas e sem token pessoal. O token automático do GitHub
-precisa de permissão de escrita em conteúdo; políticas da conta podem restringi-lo.
-Agendamentos podem sofrer atrasos ou ser desativados por inatividade pelo GitHub.
+O workflow **Verificar MangaDash compatível** confere os arquivos locais e gera
+os índices diariamente. Ele **não instala automaticamente versões novas do
+upstream** e rejeita a API 1.6, evitando reintroduzir a incompatibilidade.
 
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/sync.py
 ```
 
-O sincronizador usa um único commit imutável do upstream para ler `index.json`,
-`index.pb` e as somas SHA-256. Ele mantém apenas o pacote
-`eu.kanade.tachiyomi.extension.pt.mangadash`, preserva seu identificador de fonte,
-confere a chave de assinatura esperada e verifica os arquivos baixados antes de
-atualizar os índices. Mudanças na chave de assinatura exigem revisão manual.
-Não usa o antigo `index.min.json`, que atualmente mostra avisos de aplicativo
-desatualizado no upstream.
+Python 3.11 ou superior é suficiente, sem dependências externas. Os testes
+verificam hashes, versões, identidade de 64 bits, certificado, índices e presença
+dos métodos legados no JAR. As verificações locais não simulam o aplicativo iOS.
 
-`provenance.json` identifica o commit do índice, o código-fonte correspondente e
-as origens dos arquivos. `SHA256SUMS` registra as somas de verificação locais.
-`schema/index.proto` documenta o formato original. Os scripts deste projeto
-filtram e distribuem uma extensão pronta; não constituem um ambiente completo
-para recompilar o código Kotlin. Para modificá-lo, use o projeto original
-referenciado em `provenance.json`.
+`index.pb` é protobuf comprimido com gzip; seu formato está em `schema/index.proto`.
+Uma leitura independente usando o descritor oficial confirmou equivalência com
+`index.json`. `SHA256SUMS` lista os hashes dos arquivos assinados.
 
-## Licença e créditos
+## Licença
 
-Distribuição sob a licença Apache 2.0, incluída em `LICENSE`. Os créditos e a
-distinção entre o pacote original e os arquivos adicionados estão em `NOTICE`.
+Apache 2.0, em `LICENSE`. Os créditos e as alterações estão em `NOTICE`.
+
+Documentação do Tachimanga:
+[extensões](https://tachimanga.app/help/guides/extensions.html) e
+[repositórios](https://tachimanga.app/help/guides/repositories.html).

@@ -2,5 +2,7 @@
   "repository": "2ksllvwr/-mangadash-tachimanga",
   "branch": "main",
   "name": "MangaDash — Gustavo",
-  "badgeLabel": "MD"
+  "badgeLabel": "MD",
+  "extensionLib": "1.4",
+  "sourceCommit": "d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd"
 }

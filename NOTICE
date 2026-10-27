@@ -1,19 +1,16 @@
 MangaDash para Tachimanga
 
-This personal repository filters and redistributes the unmodified MangaDash
-extension published by the Keiyoushi project.
-
-Upstream extension code and binaries:
+Based on the MangaDash extension from the Keiyoushi project:
 https://github.com/keiyoushi/extensions-source
-https://github.com/keiyoushi/extensions
 Copyright the respective upstream contributors.
 License: Apache License, Version 2.0 (see LICENSE).
 
-Added in this repository: the Python synchronization and validation scripts,
-tests, personal repository configuration, filtered indexes, documentation,
-and GitHub Actions workflow. These additions are also licensed under Apache 2.0.
+This personal repository rebuilds the legacy HttpSource/API 1.4 module at
+commit d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd, with versionCode incremented
+from 1 to 2. The final JAR and APK use this personal repository's signing
+certificate, rather than the upstream Keiyoushi signing certificate.
 
-No upstream extension bytecode or digital signature has been changed.
-The signing key in the indexes identifies the upstream binary signer, not
-ownership of this personal repository. This project has no official affiliation
-with MangaDash, Tachimanga, or Keiyoushi.
+Repository scripts, tests, configuration, indexes, and workflows are also
+licensed under Apache 2.0. No private signing key is included in this repository.
+
+This project is not affiliated with MangaDash, Tachimanga, or Keiyoushi.
