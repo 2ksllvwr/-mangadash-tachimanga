@@ -57,9 +57,10 @@ jobs:
         run: |
           mkdir -p optimized-tests
           extension_jar=upstream/src/pt/mangadash/build/intermediates/extension_jar/release/unsigned.jar
-          javac --release 8 -cp "$extension_jar" -d optimized-tests repo/tests/PdfExtractorTest.java
-          java --limit-modules java.base,java.logging,java.xml -cp "optimized-tests:$extension_jar" PdfExtractorTest repo/tests/fixtures
+          cp upstream/src/pt/mangadash/libs/.test-classes/PdfExtractorTest.class optimized-tests/
+          java --limit-modules java.base,java.logging,java.xml -cp "$extension_jar:optimized-tests" PdfExtractorTest repo/tests/fixtures
       - name: Preparar arquivos para assinatura local
+        if: always()
         run: |
           mkdir -p output/formatted
           cp upstream/src/pt/mangadash/build/outputs/apk/release/*.apk output/
@@ -70,6 +71,7 @@ jobs:
           apksigner_path=$(find "$ANDROID_HOME/build-tools" -path '*/lib/apksigner.jar' | sort -V | tail -n 1)
           cp "$apksigner_path" output/apksigner.jar
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: mangadash-ios-pdf-unsigned
           path: output/
