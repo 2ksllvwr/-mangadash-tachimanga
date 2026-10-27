@@ -23,4 +23,5 @@ dependencies {
 extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     packaging.resources.merges.add("META-INF/LICENSE")
     packaging.resources.merges.add("META-INF/NOTICE")
+    packaging.resources.merges.add("META-INF/DEPENDENCIES")
 }
