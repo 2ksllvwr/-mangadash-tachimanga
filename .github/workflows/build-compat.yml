@@ -53,6 +53,12 @@ jobs:
       - name: Compilar e verificar lint
         working-directory: upstream
         run: bash ./gradlew :src:pt:mangadash:assembleRelease :src:pt:mangadash:lintRelease --no-daemon --console=plain
+      - name: Testar o JAR final otimizado sem Android ou Java Desktop
+        run: |
+          mkdir -p optimized-tests
+          extension_jar=upstream/src/pt/mangadash/build/intermediates/extension_jar/release/unsigned.jar
+          javac --release 8 -cp "$extension_jar" -d optimized-tests repo/tests/PdfExtractorTest.java
+          java --limit-modules java.base,java.logging,java.xml -cp "optimized-tests:$extension_jar" PdfExtractorTest repo/tests/fixtures
       - name: Preparar arquivos para assinatura local
         run: |
           mkdir -p output/formatted
