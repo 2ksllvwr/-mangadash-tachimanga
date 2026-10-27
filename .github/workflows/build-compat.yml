@@ -1,9 +1,13 @@
-name: Compilar MangaDash legado
+name: Compilar MangaDash para iOS
 on:
   workflow_dispatch:
   push:
     paths:
       - .github/workflows/build-compat.yml
+      - source/**
+      - tools/prepare_pdfbox.py
+      - tests/PdfExtractorTest.java
+      - tests/fixtures/**
 permissions:
   contents: read
 jobs:
@@ -13,38 +17,54 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          path: repo
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
           repository: keiyoushi/extensions-source
           ref: d12e3b8a1eb5d7e5c7230f5b5b5854ba625a97dd
+          path: upstream
           persist-credentials: false
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
         with:
           distribution: temurin
           java-version: '25'
-      - name: Selecionar apenas MangaDash e manter API 1.4
+      - name: Aplicar fonte corrigida e manter API 1.4
         run: |
           python3 - <<'PY'
+          import shutil
           from pathlib import Path
-          p = Path('settings.gradle.kts')
-          s = p.read_text().replace('\nloadAllIndividualExtensions()\n', '\nloadIndividualExtension("pt", "mangadash")\n')
-          p.write_text(s)
-          p = Path('src/pt/mangadash/build.gradle.kts')
-          s = p.read_text()
-          assert 'libVersion = "1.4"' in s
-          p.write_text(s.replace('versionCode = 1', 'versionCode = 2'))
+          p = Path('upstream/settings.gradle.kts')
+          original = p.read_text()
+          modified = original.replace('\nloadAllIndividualExtensions()\n', '\nloadIndividualExtension("pt", "mangadash")\n')
+          assert modified != original
+          p.write_text(modified)
+          source = Path('repo/source/mangadash')
+          assert 'libVersion = "1.4"' in (source / 'build.gradle.kts').read_text()
+          target = Path('upstream/src/pt/mangadash')
+          shutil.rmtree(target)
+          shutil.copytree(source, target, ignore=shutil.ignore_patterns('libs', 'build', '.gradle'))
           PY
+      - name: Preparar PDFBox e testar sem Android ou Java Desktop
+        run: python3 repo/tools/prepare_pdfbox.py --root repo --output upstream/src/pt/mangadash/libs
+      - name: Formatar fonte
+        working-directory: upstream
+        run: bash ./gradlew :src:pt:mangadash:spotlessApply --no-daemon --console=plain
       - name: Compilar e verificar lint
+        working-directory: upstream
         run: bash ./gradlew :src:pt:mangadash:assembleRelease :src:pt:mangadash:lintRelease --no-daemon --console=plain
       - name: Preparar arquivos para assinatura local
         run: |
-          mkdir -p output
-          cp src/pt/mangadash/build/outputs/apk/release/*.apk output/
-          cp src/pt/mangadash/build/intermediates/extension_jar/release/unsigned.jar output/unsigned.jar
-          cp src/pt/mangadash/build/keiyoushi-source-info.json output/
+          mkdir -p output/formatted
+          cp upstream/src/pt/mangadash/build/outputs/apk/release/*.apk output/
+          cp upstream/src/pt/mangadash/build/intermediates/extension_jar/release/unsigned.jar output/unsigned.jar
+          cp upstream/src/pt/mangadash/build/keiyoushi-source-info.json output/
+          cp -R upstream/src/pt/mangadash/src upstream/src/pt/mangadash/assets output/formatted/
+          cp upstream/src/pt/mangadash/build.gradle.kts upstream/src/pt/mangadash/proguard-rules.pro output/formatted/
           apksigner_path=$(find "$ANDROID_HOME/build-tools" -path '*/lib/apksigner.jar' | sort -V | tail -n 1)
           cp "$apksigner_path" output/apksigner.jar
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: mangadash-legacy-unsigned
+          name: mangadash-ios-pdf-unsigned
           path: output/
           retention-days: 3
-

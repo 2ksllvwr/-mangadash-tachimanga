@@ -1,0 +1,6 @@
+-dontwarn java.awt.**
+-dontwarn javax.imageio.**
+-dontwarn java.beans.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.avalon.**
+-dontwarn org.apache.log.**

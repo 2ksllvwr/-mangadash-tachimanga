@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "MangaDash"
-    versionCode = 2
+    versionCode = 3
     contentWarning = ContentWarning.MIXED
     libVersion = "1.4"
 
@@ -14,4 +14,13 @@ keiyoushi {
         lang = "pt-BR"
         baseUrl = "https://mangadash.net"
     }
+}
+
+dependencies {
+    implementation(files("libs/pdfbox-headless.jar", "libs/fontbox.jar", "libs/commons-logging.jar"))
+}
+
+extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+    packaging.resources.merges.add("META-INF/LICENSE")
+    packaging.resources.merges.add("META-INF/NOTICE")
 }

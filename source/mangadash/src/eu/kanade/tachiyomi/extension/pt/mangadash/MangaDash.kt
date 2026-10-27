@@ -2,12 +2,6 @@
 
 package eu.kanade.tachiyomi.extension.pt.mangadash
 
-import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.pdf.PdfRenderer
-import android.os.ParcelFileDescriptor
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.network.GET
@@ -33,15 +27,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.asResponseBody
-import okio.Buffer
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
-import java.io.File
+import okhttp3.ResponseBody.Companion.toResponseBody
 import java.io.IOException
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.time.Duration.Companion.minutes
+import java.util.concurrent.TimeUnit
 
 @Suppress("unused")
 @Source
@@ -53,12 +44,7 @@ abstract class MangaDash :
 
     private val preferences by getPreferencesLazy()
 
-    // Retrieve the app's dedicated cache directory safely
-    private val cacheDir: File by lazy {
-        File(Injekt.get<Application>().cacheDir, "mangadash_pdf_cache").apply {
-            mkdirs()
-        }
-    }
+    private val pdfCache = LinkedHashMap<String, List<PdfImageExtractor.Image>>(4, 0.75f, true)
 
     private val loginInterceptor = Interceptor { chain ->
         val request = chain.request()
@@ -94,53 +80,21 @@ abstract class MangaDash :
 
     private val pdfInterceptor = Interceptor { chain ->
         val request = chain.request()
-        val url = request.url
-        if (url.pathSegments.firstOrNull() == "pdf-page") {
-            val fileName = url.pathSegments[1]
-            val pageIndex = url.pathSegments[2].toInt()
-
-            val file = File(cacheDir, fileName)
-            if (!file.exists()) {
-                throw IOException("PDF file not found in cache")
-            }
-
-            return@Interceptor ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
-                PdfRenderer(pfd).use { renderer ->
-                    renderer.openPage(pageIndex).use { page ->
-                        // Scale up the PDF page resolution (PDF coordinates are 72 DPI).
-                        // Max width bounded to ~1500px to ensure Memory Safety on large files.
-                        val scale = minOf(2.5f, 1500f / page.width)
-                        val bitmap = Bitmap.createBitmap(
-                            (page.width * scale).toInt(),
-                            (page.height * scale).toInt(),
-                            Bitmap.Config.ARGB_8888,
-                        )
-
-                        // PDF pages are transparent by default, fill the background with white
-                        val canvas = Canvas(bitmap)
-                        canvas.drawColor(Color.WHITE)
-
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-
-                        // Memory-efficient stream-based image processing using Okio
-                        val buffer = Buffer()
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, buffer.outputStream())
-                        bitmap.recycle() // Important: free native memory immediately
-
-                        val body = buffer.asResponseBody("image/jpeg".toMediaType())
-
-                        Response.Builder()
-                            .code(200)
-                            .protocol(Protocol.HTTP_1_1)
-                            .request(request)
-                            .message("OK")
-                            .body(body)
-                            .build()
-                    }
-                }
-            }
+        val path = request.url.pathSegments
+        if (path.size == 3 && path[0] == "__mangadash_pdf") {
+            val index = path[2].toIntOrNull() ?: throw IOException("Página PDF inválida")
+            val image = synchronized(pdfCache) { pdfCache[path[1]]?.getOrNull(index) }
+                ?: throw IOException("Reabra o capítulo para recarregar as imagens do PDF")
+            Response.Builder()
+                .code(200)
+                .protocol(Protocol.HTTP_1_1)
+                .request(request)
+                .message("OK")
+                .body(image.data.toResponseBody(image.mimeType.toMediaType()))
+                .build()
+        } else {
+            chain.proceed(request)
         }
-        chain.proceed(request)
     }
 
     override val client: OkHttpClient = network.client.newBuilder()
@@ -307,50 +261,37 @@ abstract class MangaDash :
                 pdfUrl = baseUrl + pdfUrl
             }
 
-            // Create a specific client with a longer timeout to prevent OkHttp crashing on 30MB+ PDF downloads
             val pdfClient = client.newBuilder()
-                .readTimeout(3.minutes)
-                .connectTimeout(1.minutes)
+                .readTimeout(3, TimeUnit.MINUTES)
+                .connectTimeout(1, TimeUnit.MINUTES)
                 .build()
-
-            val pdfHeaders = headersBuilder()
-                .add("Origin", baseUrl)
-                .build()
-
+            val pdfHeaders = headersBuilder().add("Origin", baseUrl).build()
             val pdfRequest = GET(pdfUrl, pdfHeaders)
-
-            // Using use { ... } around manual network calls block for reliable memory release
-            pdfClient.newCall(pdfRequest).execute().use { pdfResponse ->
+            val pages = pdfClient.newCall(pdfRequest).execute().use { pdfResponse ->
                 if (!pdfResponse.isSuccessful) {
-                    throw Exception("HTTP error ${pdfResponse.code} ao baixar o arquivo PDF do capítulo")
+                    throw IOException("HTTP ${pdfResponse.code} ao acessar o PDF do capítulo")
                 }
-
-                // Cleanup older PDF files to free up disk space (removes files older than 1 hr)
-                cacheDir.listFiles()?.forEach {
-                    if (System.currentTimeMillis() - it.lastModified() > 3600000) {
-                        it.delete()
-                    }
-                }
-
-                val tempFile = File(cacheDir, "chapter_${System.currentTimeMillis()}.pdf")
-
-                // Use stream saving to prevent buffering heavy PDFs entirely into memory
-                pdfResponse.body.byteStream().use { input ->
-                    tempFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
-                val pageCount = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
-                    PdfRenderer(pfd).use { renderer ->
-                        renderer.pageCount
-                    }
-                }
-
-                return (0 until pageCount).map { i ->
-                    Page(i, imageUrl = "$baseUrl/pdf-page/${tempFile.name}/$i")
+                try {
+                    pdfResponse.body.byteStream().use { PdfImageExtractor.extract(it) }
+                } catch (e: IOException) {
+                    throw IOException("MangaDash 1.4.3: ${e.message}", e)
                 }
             }
+            val key = MessageDigest.getInstance("SHA-256")
+                .digest((document.location() + pdfUrl).toByteArray())
+                .joinToString("") { (it.toInt() and 255).toString(16).padStart(2, '0') }
+            synchronized(pdfCache) {
+                pdfCache[key] = pages
+                var bytes = 0L
+                pdfCache.values.forEach { list -> list.forEach { bytes += it.data.size } }
+                while (pdfCache.size > 2 || (bytes > 96L * 1024 * 1024 && pdfCache.size > 1)) {
+                    val iterator = pdfCache.entries.iterator()
+                    val previous = iterator.next()
+                    previous.value.forEach { bytes -= it.data.size }
+                    iterator.remove()
+                }
+            }
+            return pages.mapIndexed { i, _ -> Page(i, imageUrl = "$baseUrl/__mangadash_pdf/$key/$i") }
         }
 
         throw Exception("Nenhuma imagem encontrada para este capítulo.")
