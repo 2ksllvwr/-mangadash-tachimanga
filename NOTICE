@@ -1,0 +1,19 @@
+MangaDash para Tachimanga
+
+This personal repository filters and redistributes the unmodified MangaDash
+extension published by the Keiyoushi project.
+
+Upstream extension code and binaries:
+https://github.com/keiyoushi/extensions-source
+https://github.com/keiyoushi/extensions
+Copyright the respective upstream contributors.
+License: Apache License, Version 2.0 (see LICENSE).
+
+Added in this repository: the Python synchronization and validation scripts,
+tests, personal repository configuration, filtered indexes, documentation,
+and GitHub Actions workflow. These additions are also licensed under Apache 2.0.
+
+No upstream extension bytecode or digital signature has been changed.
+The signing key in the indexes identifies the upstream binary signer, not
+ownership of this personal repository. This project has no official affiliation
+with MangaDash, Tachimanga, or Keiyoushi.
